@@ -139,10 +139,16 @@ public class CameraHandler {
 		if (supportedFocusModes != null) {
 			
 			if (supportedFocusModes
+					.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
+				parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
+				Log.d(TAG, "Set focus mode CONTINUOUS_PICTURE");
+			} 
+			else if (supportedFocusModes
 					.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO)) {
 				parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
-				Log.d(TAG, "Set focus mode CONTINUOUS_VIDEO");
-			} else if (supportedFocusModes
+				Log.d(TAG, "Set focus mode CONTINUOS VIDEO");
+			}
+			else if (supportedFocusModes
 					.contains(Camera.Parameters.FOCUS_MODE_AUTO)) {
 				parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
 				Log.d(TAG, "Set focus mode AUTO");
@@ -250,7 +256,7 @@ public class CameraHandler {
 	private Camera.AutoFocusCallback focusCallback = new Camera.AutoFocusCallback() {
 		@Override
 		public void onAutoFocus(boolean success, Camera camera) {
-			Log.d(TAG, "camera focused");
+			Log.d(TAG, "camera focused: " + success);
 			if(takingPhoto){
 				takingPhoto = false;
 				camera.takePicture(null, null, jpegCallback);
@@ -302,6 +308,7 @@ public class CameraHandler {
 			imageBitmap.copyPixelsToBuffer(buffer);
 			
 			camera.startPreview();
+			camera.cancelAutoFocus();
 			Log.d(TAG, "Picture taken, restarting preview");
 			
 			//previewHolder.addCallback(surfaceCallback);
