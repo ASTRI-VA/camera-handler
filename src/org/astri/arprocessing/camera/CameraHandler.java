@@ -2,19 +2,27 @@ package org.astri.arprocessing.camera;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
 import android.graphics.PixelFormat;
+import android.graphics.Point;
+import android.graphics.Rect;
+import android.graphics.RectF;
 import android.hardware.Camera;
 import android.hardware.Camera.CameraInfo;
+import android.hardware.Camera.Parameters;
 import android.hardware.Camera.Size;
 import android.util.Log;
+import android.view.Display;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.view.WindowManager;
 
 public class CameraHandler {
 
@@ -51,12 +59,23 @@ public class CameraHandler {
 	private int photoWidth;
 	private int photoHeight;
 
-	public CameraHandler() {
-		this.currentCameraFacing = CameraInfo.CAMERA_FACING_BACK;
+	private int displayWidth;
+	private int displayHeight;
+	
+	public CameraHandler(Context context) {
+		this(CameraInfo.CAMERA_FACING_BACK, context);
 	}
 	
-	public CameraHandler(int cameraFacing) {
+	public CameraHandler(int cameraFacing, Context context) {
+		
 		this.currentCameraFacing = cameraFacing;
+		
+		WindowManager wm = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+		Display display = wm.getDefaultDisplay();
+		Point size = new Point();
+		display.getSize(size);
+		displayWidth = size.y;
+		displayHeight = size.x;
 	}
 
 	public void setPreviewHolder(SurfaceView preview) {
@@ -260,6 +279,8 @@ public class CameraHandler {
 			if(takingPhoto){
 				takingPhoto = false;
 				camera.takePicture(null, null, jpegCallback);
+			} else {
+				//camera.cancelAutoFocus();
 			}
 		}
 	};
@@ -467,5 +488,57 @@ public class CameraHandler {
 		}
 		
 	}
+	
+	public void focusOnTouch(float x, float y) {
+		
+	    if (camera != null) {
+
+	        camera.cancelAutoFocus();
+	        Rect focusRect = calculateFocusArea(x, y, 1f);
+
+	        Parameters parameters = camera.getParameters();
+	        parameters.setFocusMode(Parameters.FOCUS_MODE_AUTO);
+	        
+	        List<Camera.Area> areas = new ArrayList<Camera.Area>();
+	        areas.add(new Camera.Area(focusRect, 1000));
+	        Log.d(TAG, "touch x: " + x + " y: " + y + 
+	        		 ", focus x: " + focusRect.centerX() + " y: " + focusRect.centerY() + 
+	        		 ", disp w: " + displayWidth + " h: " + displayHeight);
+	        parameters.setFocusAreas(areas);
+
+	        camera.setParameters(parameters);
+	        camera.autoFocus(focusCallback);
+	    }
+	    
+	}
+	
+	float focusAreaSize = 72f;
+	
+	// Convert touch position x:y to {@link Camera.Area} position -1000:-1000 to 1000:1000.
+	private Rect calculateFocusArea(float x, float y, float coefficient) {
+	    int areaSize = Float.valueOf(focusAreaSize * coefficient).intValue();
+	    
+	    float xScaled = x * (2000f / (float)displayWidth) - 1000f;
+	    float yScaled = y * (2000f / (float)displayHeight) - 1000f;
+	    
+	    int left = clamp((int) xScaled - areaSize / 2, -1000, 1000 - areaSize);
+	    int top = clamp((int) yScaled - areaSize / 2, -1000, 1000 - areaSize);
+
+	    RectF rectF = new RectF(left, top, left + areaSize, top + areaSize);
+	    
+	    return new Rect(Math.round(rectF.left), Math.round(rectF.top), 
+	    		Math.round(rectF.right), Math.round(rectF.bottom));
+	}
+
+	private int clamp(int x, int min, int max) {
+	    if (x > max) {
+	        return max;
+	    }
+	    if (x < min) {
+	        return min;
+	    }
+	    return x;
+	}
+	
 
 }
