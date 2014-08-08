@@ -1,14 +1,10 @@
 package org.astri.arprocessing.camera;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import android.content.Context;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
 import android.graphics.PixelFormat;
 import android.graphics.Point;
@@ -30,10 +26,6 @@ public class CameraHandler {
 
 	public static final int FRAME_WIDTH = 640;
 	public static final int FRAME_HEIGHT = 480;
-
-	private static final float PHOTO_ASPECT_RATIO = 1.3333f;
-	private static final float PHOTO_ASPECT_RATIO_LIMIT = 0.01f;
-	private static final int PHOTO_MAX_PIXELS = 2048 * 1600;
 	
 	private SurfaceHolder previewHolder = null;
 	private Camera camera;
@@ -55,9 +47,8 @@ public class CameraHandler {
 
 	private CameraDataListener dataListener;
 	
-	private boolean takingPhoto = false;
-	private int photoWidth;
-	private int photoHeight;
+	private PhotoTaker photoTaker;
+	private PhotoTaker markerTaker;
 
 	private int displayWidth;
 	private int displayHeight;
@@ -76,6 +67,7 @@ public class CameraHandler {
 		display.getSize(size);
 		displayWidth = size.y;
 		displayHeight = size.x;
+		
 	}
 
 	public void setPreviewHolder(SurfaceView preview) {
@@ -85,6 +77,10 @@ public class CameraHandler {
 
 	public void setDataListener(CameraDataListener listener) {
 		this.dataListener = listener;
+		photoTaker = new PhotoTaker(photoListener, PhotoTaker.PHOTO_ASPECT_RATIO, 
+				PhotoTaker.PHOTO_ASPECT_RATIO_LIMIT, PhotoTaker.PHOTO_MAX_PIXELS);
+		markerTaker = new PhotoTaker(markerListener, PhotoTaker.MARKER_ASPECT_RATIO,
+				PhotoTaker.MARKER_ASPECT_RATIO_LIMIT, PhotoTaker.MARKER_MAX_PIXELS);
 	}
 
 	public void resumeCamera(int cameraFacing) {
@@ -149,7 +145,7 @@ public class CameraHandler {
 		}
 		*/
 		
-		setPictureSize(parameters);
+		photoTaker.setPictureSize(camera);
 		parameters.setPreviewSize(FRAME_WIDTH, FRAME_HEIGHT);
 		parameters.setPreviewFormat(ImageFormat.NV21);
 		parameters.setWhiteBalance(Camera.Parameters.WHITE_BALANCE_AUTO);
@@ -192,44 +188,15 @@ public class CameraHandler {
 		setCallback();
 	}
 	
-	private void setPictureSize(Camera.Parameters parameters){
-		
-		List<Size> pictureSizes = parameters.getSupportedPictureSizes();
-		Collections.sort(pictureSizes, new SizeComparator());
-		Size bestSize = null;
-
-		Log.d(TAG, "Supported picture sizes:");
-		for (Size s : pictureSizes) {
-			Log.d(TAG, "picture size w: " + s.width + ", h:" + s.height);
-			if(s.width * s.height > PHOTO_MAX_PIXELS){
-				continue; // too big size
-			}
-			float aspectRatio = (float)s.width / (float)s.height;
-			float difference = Math.abs(PHOTO_ASPECT_RATIO - aspectRatio);
-			if(difference < PHOTO_ASPECT_RATIO_LIMIT){
-				bestSize = s;
-				break;
-			}
-		}
-		
-		if(bestSize == null){
-			// not possible to take photo..?
-		}
-		
-		photoWidth = bestSize.width;
-		photoHeight = bestSize.height;
-		
-		parameters.setPictureSize(photoWidth, photoHeight);
-	}
-
+	
 	public void initPhotoSize(){
 		
 		if(camera != null){
-			setPictureSize(camera.getParameters());
+			photoTaker.setPictureSize(camera);
 		}
 		else {
 			camera = Camera.open();
-			setPictureSize(camera.getParameters());
+			photoTaker.setPictureSize(camera);
 			camera.release();
 			camera = null;
 		}
@@ -237,11 +204,11 @@ public class CameraHandler {
 	}
 	
 	public int getPhotoWidth(){
-		return photoWidth;
+		return photoTaker.getPhotoWidth();
 	}
 	
 	public int getPhotoHeight(){
-		return photoHeight;
+		return photoTaker.getPhotoHeight();
 	}
 	
 	public void pauseCamera() {
@@ -261,10 +228,9 @@ public class CameraHandler {
 	public boolean takePhoto(){
 		Log.d(TAG, "starting to take photo");
 		
-		if(camera != null && inPreview){
-			takingPhoto = true;
-			camera.autoFocus(focusCallback);
-			Log.d(TAG, "photo taking finished");
+		if(inPreview){
+			photoTaker.takePhoto(camera);
+			Log.d(TAG, "photo taking called");
 			return true;
 		} else {
 			Log.e(TAG, "Can not take a photo now!");
@@ -272,74 +238,6 @@ public class CameraHandler {
 		}
 	}
 	
-	private Camera.AutoFocusCallback focusCallback = new Camera.AutoFocusCallback() {
-		@Override
-		public void onAutoFocus(boolean success, Camera camera) {
-			Log.d(TAG, "camera focused: " + success);
-			if(takingPhoto){
-				takingPhoto = false;
-				camera.takePicture(null, null, jpegCallback);
-			} else {
-				//camera.cancelAutoFocus();
-			}
-		}
-	};
-	
-	private Camera.PictureCallback rawCallback = new Camera.PictureCallback() {
-		@Override
-		public void onPictureTaken(byte[] data, Camera camera) {
-			Log.d(TAG, "image data received: " + data);
-			camera.startPreview();
-			Log.d(TAG, "Picture taken, restarting preview");
-			dataListener.receivePhotoFrame(data, photoWidth, photoHeight);
-		}
-	};
-	
-	private Camera.PictureCallback jpegCallback = new Camera.PictureCallback() {
-		@Override
-		public void onPictureTaken(byte[] data, Camera camera) {
-			/*
-			File sd = Environment.getExternalStorageDirectory();
-			String filePath = sd.getPath();
-		    File file = new File(filePath, "image.jpg");
-		    FileOutputStream os;
-		    try {
-		        os = new FileOutputStream(file, true);
-		        os.write(data);
-		        os.close();
-		    } catch (FileNotFoundException e) {
-		        e.printStackTrace();
-		    } catch (IOException e) {
-		        e.printStackTrace();
-		    } finally {
-		    	//photoTaken.release();
-		    }
-			*/
-			
-			// decode jpeg to byte array and convert to RGB565
-			BitmapFactory.Options options = new BitmapFactory.Options();
-			options.inPreferredConfig = Bitmap.Config.RGB_565;
-			Bitmap imageBitmap = BitmapFactory.decodeByteArray(data, 0, data.length, options);
-			int bytes = imageBitmap.getRowBytes() * imageBitmap.getHeight();
-			Log.d(TAG, "image data l: " + data.length + 
-					" w:" + photoWidth + " h:" + photoHeight + 
-					" row:" + imageBitmap.getRowBytes() + " b:" + bytes +
-					" c:" + imageBitmap.getConfig());
-			ByteBuffer buffer = ByteBuffer.allocate(bytes);
-			imageBitmap.copyPixelsToBuffer(buffer);
-			
-			camera.startPreview();
-			camera.cancelAutoFocus();
-			Log.d(TAG, "Picture taken, restarting preview");
-			
-			//previewHolder.addCallback(surfaceCallback);
-			//camera.setPreviewDisplay(previewHolder);
-			
-			dataListener.receivePhotoFrame(buffer.array(), photoWidth, photoHeight);
-		}
-	};
-
-
 	private SurfaceHolder.Callback surfaceCallback = new SurfaceHolder.Callback() {
 		public void surfaceCreated(SurfaceHolder holder) {
 			try {
@@ -512,6 +410,13 @@ public class CameraHandler {
 	    
 	}
 	
+	private Camera.AutoFocusCallback focusCallback = new Camera.AutoFocusCallback() {
+		@Override
+		public void onAutoFocus(boolean success, Camera camera) {
+			Log.d(TAG, "camera focused: " + success);
+		}
+	};
+	
 	float focusAreaSize = 72f;
 	
 	// Convert touch position x:y to {@link Camera.Area} position -1000:-1000 to 1000:1000.
@@ -540,5 +445,34 @@ public class CameraHandler {
 	    return x;
 	}
 	
-
+	
+	public boolean captureMarker(float aspectRatio){
+		Log.d(TAG, "starting to capture marker");
+		
+		if(inPreview){
+			markerTaker.setAspectRatio(aspectRatio);
+			markerTaker.takePhoto(camera);
+			Log.d(TAG, "marker taking called");
+			return true;
+		} else {
+			Log.e(TAG, "Can not capture marker now!");
+			return false;
+		}
+		
+	}
+	
+	private PhotoListener photoListener = new PhotoListener() {
+		@Override
+		public void photoCaptured(byte[] data, int width, int height, float screenAspectRatio) {
+			dataListener.receivePhotoFrame(data, width, height);
+		}
+	};
+	
+	private PhotoListener markerListener = new PhotoListener() {
+		@Override
+		public void photoCaptured(byte[] data, int width, int height, float screenAspectRatio) {
+			dataListener.receiveMarkerFrame(data, width, height, screenAspectRatio);
+		}
+	};
+	
 }
