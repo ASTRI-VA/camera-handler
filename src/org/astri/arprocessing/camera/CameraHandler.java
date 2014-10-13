@@ -24,8 +24,11 @@ public class CameraHandler {
 
 	private static final String TAG = "CameraHandler";
 
-	public static final int FRAME_WIDTH = 640;
-	public static final int FRAME_HEIGHT = 480;
+	public static final int DEFAULT_FRAME_WIDTH = 640;
+	public static final int DEFAULT_FRAME_HEIGHT = 480;
+	
+	private static int FrameWidth = DEFAULT_FRAME_WIDTH;
+	private static int FrameHeight = DEFAULT_FRAME_HEIGHT;
 	
 	private SurfaceHolder previewHolder = null;
 	private Camera camera;
@@ -58,7 +61,14 @@ public class CameraHandler {
 	}
 	
 	public CameraHandler(int cameraFacing, Context context) {
+		this(DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT,
+				CameraInfo.CAMERA_FACING_BACK, context);
+	}
+	
+	public CameraHandler(int frameWidth, int frameHeight, int cameraFacing, Context context) {
 		
+		CameraHandler.FrameWidth = frameWidth;
+		CameraHandler.FrameHeight = frameHeight;
 		this.currentCameraFacing = cameraFacing;
 		
 		WindowManager wm = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
@@ -146,7 +156,7 @@ public class CameraHandler {
 		*/
 		
 		photoTaker.setPictureSize(camera);
-		parameters.setPreviewSize(FRAME_WIDTH, FRAME_HEIGHT);
+		parameters.setPreviewSize(FrameWidth, FrameHeight);
 		parameters.setPreviewFormat(ImageFormat.NV21);
 		parameters.setWhiteBalance(Camera.Parameters.WHITE_BALANCE_AUTO);
 
@@ -265,7 +275,7 @@ public class CameraHandler {
 				Log.d(TAG, "w: " + s.width + ", h:" + s.height);
 			}
 
-			parameters.setPreviewSize(FRAME_WIDTH, FRAME_HEIGHT);
+			parameters.setPreviewSize(FrameWidth, FrameHeight);
 			camera.setParameters(parameters);
 			camera.startPreview();
 			inPreview = true;
@@ -362,7 +372,7 @@ public class CameraHandler {
 				}
 			}
 			
-			dataListener.receiveCameraFrame(data, FRAME_WIDTH, FRAME_HEIGHT, 
+			dataListener.receiveCameraFrame(data, FrameWidth, FrameHeight, 
 					currentCameraFacing == CameraInfo.CAMERA_FACING_BACK);
 			//Log.d(TAG, "frame received from camera");
 		}
