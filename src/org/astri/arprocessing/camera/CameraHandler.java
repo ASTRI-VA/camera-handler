@@ -56,6 +56,8 @@ public class CameraHandler {
 	private int displayWidth;
 	private int displayHeight;
 	
+	private String preferredFocusMode = null;
+	
 	public CameraHandler(Context context) {
 		this(CameraInfo.CAMERA_FACING_BACK, context);
 	}
@@ -93,6 +95,10 @@ public class CameraHandler {
 				PhotoTaker.MARKER_ASPECT_RATIO_LIMIT, PhotoTaker.MARKER_MAX_PIXELS);
 	}
 
+	public void setPreferredFocusMode(String focusMode) {
+		this.preferredFocusMode = focusMode;
+	}
+	
 	public void resumeCamera(int cameraFacing) {
 
 		currentCameraFacing = cameraFacing;
@@ -160,23 +166,39 @@ public class CameraHandler {
 		parameters.setPreviewFormat(ImageFormat.NV21);
 		parameters.setWhiteBalance(Camera.Parameters.WHITE_BALANCE_AUTO);
 
+		String focusMode = chooseFocusMode(parameters);
+		if(focusMode != null) {
+			parameters.setFocusMode(focusMode);
+		}
+		
+		camera.setParameters(parameters);
+		Log.d(TAG, "finished set camera parameters");
+
+		setCallback();
+	}
+	
+	private String chooseFocusMode(Parameters parameters) {
+		
+		String selectedFocusMode = null;
+		
 		List<String> supportedFocusModes = parameters.getSupportedFocusModes();
 		if (supportedFocusModes != null) {
 			
-			if (supportedFocusModes
-					.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
-				parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
-				Log.d(TAG, "Set focus mode CONTINUOUS_PICTURE");
-			} 
-			else if (supportedFocusModes
-					.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO)) {
-				parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
-				Log.d(TAG, "Set focus mode CONTINUOS VIDEO");
+			if(preferredFocusMode != null && 
+					supportedFocusModes.contains(preferredFocusMode)){
+				selectedFocusMode = preferredFocusMode;
 			}
-			else if (supportedFocusModes
-					.contains(Camera.Parameters.FOCUS_MODE_AUTO)) {
-				parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
-				Log.d(TAG, "Set focus mode AUTO");
+			else if (supportedFocusModes.contains(
+						Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
+				selectedFocusMode = Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE;
+			} 
+			else if (supportedFocusModes.contains(
+						Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO)) {
+				selectedFocusMode = Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO;
+			}
+			else if (supportedFocusModes.contains(
+						Camera.Parameters.FOCUS_MODE_AUTO)) {
+				selectedFocusMode = Camera.Parameters.FOCUS_MODE_AUTO;
 			}
 			
 			/*
@@ -192,10 +214,8 @@ public class CameraHandler {
 			*/
 		}
 		
-		camera.setParameters(parameters);
-		Log.d(TAG, "finished set camera parameters");
-
-		setCallback();
+		Log.d(TAG, "Selected focus mode: " + selectedFocusMode);
+		return selectedFocusMode;
 	}
 	
 	
