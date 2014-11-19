@@ -24,8 +24,8 @@ public class CameraHandler {
 
 	private static final String TAG = "CameraHandler";
 
-	public static final int FRAME_WIDTH = 640;
-	public static final int FRAME_HEIGHT = 480;
+	public static final int FRAME_WIDTH = 1280;
+	public static final int FRAME_HEIGHT = 720;
 	
 	private SurfaceHolder previewHolder = null;
 	private Camera camera;

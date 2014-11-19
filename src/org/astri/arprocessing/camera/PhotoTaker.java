@@ -17,7 +17,7 @@ import android.util.Log;
 
 public class PhotoTaker {
 
-	public static final float PHOTO_ASPECT_RATIO = 1.3333f;
+	public static final float PHOTO_ASPECT_RATIO = 1.7778f;
 	public static final float PHOTO_ASPECT_RATIO_LIMIT = 0.01f;
 	public static final int PHOTO_MAX_PIXELS = 2048 * 1600;
 	
