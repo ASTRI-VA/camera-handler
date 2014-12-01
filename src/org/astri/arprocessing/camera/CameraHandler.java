@@ -24,8 +24,11 @@ public class CameraHandler {
 
 	private static final String TAG = "CameraHandler";
 
-	public static final int FRAME_WIDTH = 1280;
-	public static final int FRAME_HEIGHT = 720;
+//	public static final int FRAME_WIDTH = 1280;
+//	public static final int FRAME_HEIGHT = 720;
+	
+	private int frameWidth = 1280;
+	private int frameHeight = 720;
 	
 	private SurfaceHolder previewHolder = null;
 	private Camera camera;
@@ -82,8 +85,14 @@ public class CameraHandler {
 		markerTaker = new PhotoTaker(markerListener, PhotoTaker.MARKER_ASPECT_RATIO,
 				PhotoTaker.MARKER_ASPECT_RATIO_LIMIT, PhotoTaker.MARKER_MAX_PIXELS);
 	}
+	
+	public void setPreviewSize(int presetWidth, int presetHeight) {
+		frameWidth = presetWidth;
+		frameHeight = presetHeight;
+		photoTaker.setAspectRatio ( frameWidth * 1.0f / frameHeight );
+	}
 
-	public void resumeCamera(int cameraFacing) {
+	public int [] resumeCamera(int cameraFacing/*, int presetWidth, int presetHeight*/) {
 
 		currentCameraFacing = cameraFacing;
 		
@@ -112,9 +121,9 @@ public class CameraHandler {
 			}
 		}
 		
-	    
+		int [] frameSize = new int [2];
 		if (camera != null) {
-			initCamera();
+			initCamera(frameWidth, frameHeight);
 			Log.d(TAG, "finished camera init");
 			try {
 				camera.setPreviewDisplay(previewHolder);
@@ -123,30 +132,43 @@ public class CameraHandler {
 			}
 			camera.startPreview();
 			Log.d(TAG, "Camera preview started");
+			frameSize[0] = frameWidth;
+			frameSize[1] = frameHeight;
+			return frameSize;
 		} else {
 			Log.e(TAG, "Failed to open camera");
+
+			frameSize[0] = 0;
+			frameSize[1] = 0;
 		}
+		
+		return frameSize;
 	}
 
-	private void initCamera() {
+	private void initCamera(int presetWidth, int presetHeight) {
 
 		Camera.Parameters parameters = camera.getParameters();
-
-		/*
+		int minDifference = 100000;
+		
 		List<Size> previewSizes = parameters.getSupportedPreviewSizes();
-		List<Size> pictureSizes = parameters.getSupportedPictureSizes();
 		Log.d(TAG, "Supported preview sizes:");
 		for (Size s : previewSizes) {
-			Log.d(TAG, "preview size w: " + s.width + ", h:" + s.height);
+			if (s.width == presetWidth && Math.abs(s.height-presetHeight) < minDifference) {
+				Log.d(TAG, "preview size w: " + s.width + ", h:" + s.height);
+				frameWidth = s.width;
+				frameHeight = s.height;
+			}
 		}
-		Log.d(TAG, "Supported picture sizes:");
-		for (Size s : pictureSizes) {
-			Log.d(TAG, "picture size w: " + s.width + ", h:" + s.height);
-		}
-		*/
+		
+//		List<Size> pictureSizes = parameters.getSupportedPictureSizes();
+//		Log.d(TAG, "Supported picture sizes:");
+//		for (Size s : pictureSizes) {
+//			Log.d(TAG, "picture size w: " + s.width + ", h:" + s.height);
+//		}
+		
 		
 		photoTaker.setPictureSize(camera);
-		parameters.setPreviewSize(FRAME_WIDTH, FRAME_HEIGHT);
+		parameters.setPreviewSize(frameWidth, frameHeight);
 		parameters.setPreviewFormat(ImageFormat.NV21);
 		parameters.setWhiteBalance(Camera.Parameters.WHITE_BALANCE_AUTO);
 
@@ -265,7 +287,7 @@ public class CameraHandler {
 				Log.d(TAG, "w: " + s.width + ", h:" + s.height);
 			}
 
-			parameters.setPreviewSize(FRAME_WIDTH, FRAME_HEIGHT);
+			parameters.setPreviewSize(frameWidth, frameHeight);
 			camera.setParameters(parameters);
 			camera.startPreview();
 			inPreview = true;
@@ -362,7 +384,7 @@ public class CameraHandler {
 				}
 			}
 			
-			dataListener.receiveCameraFrame(data, FRAME_WIDTH, FRAME_HEIGHT, 
+			dataListener.receiveCameraFrame(data, frameWidth, frameHeight, 
 					currentCameraFacing == CameraInfo.CAMERA_FACING_BACK);
 			//Log.d(TAG, "frame received from camera");
 		}
@@ -381,7 +403,7 @@ public class CameraHandler {
 					currentCameraFacing = CameraInfo.CAMERA_FACING_BACK;
 				}
 				
-				resumeCamera(currentCameraFacing);
+				resumeCamera(currentCameraFacing/*, frameWidth, frameHeight*/);
 			}
 		}
 		
