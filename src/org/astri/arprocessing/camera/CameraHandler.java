@@ -24,11 +24,11 @@ public class CameraHandler {
 
 	private static final String TAG = "CameraHandler";
 
-//	public static final int FRAME_WIDTH = 1280;
-//	public static final int FRAME_HEIGHT = 720;
+	public static final int DEFAULT_FRAME_WIDTH = 640;
+	public static final int DEFAULT_FRAME_HEIGHT = 480;
 	
-	private int frameWidth = 1280;
-	private int frameHeight = 720;
+	private static int FrameWidth = DEFAULT_FRAME_WIDTH;
+	private static int FrameHeight = DEFAULT_FRAME_HEIGHT;
 	
 	private SurfaceHolder previewHolder = null;
 	private Camera camera;
@@ -56,12 +56,21 @@ public class CameraHandler {
 	private int displayWidth;
 	private int displayHeight;
 	
+	private String preferredFocusMode = null;
+	
 	public CameraHandler(Context context) {
 		this(CameraInfo.CAMERA_FACING_BACK, context);
 	}
 	
 	public CameraHandler(int cameraFacing, Context context) {
+		this(DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT,
+				CameraInfo.CAMERA_FACING_BACK, context);
+	}
+	
+	public CameraHandler(int frameWidth, int frameHeight, int cameraFacing, Context context) {
 		
+		CameraHandler.FrameWidth = frameWidth;
+		CameraHandler.FrameHeight = frameHeight;
 		this.currentCameraFacing = cameraFacing;
 		
 		WindowManager wm = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
@@ -87,12 +96,16 @@ public class CameraHandler {
 	}
 	
 	public void setPreviewSize(int presetWidth, int presetHeight) {
-		frameWidth = presetWidth;
-		frameHeight = presetHeight;
-		photoTaker.setAspectRatio ( frameWidth * 1.0f / frameHeight );
+		FrameWidth = presetWidth;
+		FrameHeight = presetHeight;
+		photoTaker.setAspectRatio ( FrameWidth * 1.0f / FrameHeight );
 	}
 
-	public int [] resumeCamera(int cameraFacing/*, int presetWidth, int presetHeight*/) {
+	public void setPreferredFocusMode(String focusMode) {
+		this.preferredFocusMode = focusMode;
+	}
+	
+	public int [] resumeCamera(int cameraFacing) {
 
 		currentCameraFacing = cameraFacing;
 		
@@ -123,7 +136,7 @@ public class CameraHandler {
 		
 		int [] frameSize = new int [2];
 		if (camera != null) {
-			initCamera(frameWidth, frameHeight);
+			initCamera(FrameWidth, FrameHeight);
 			Log.d(TAG, "finished camera init");
 			try {
 				camera.setPreviewDisplay(previewHolder);
@@ -132,8 +145,8 @@ public class CameraHandler {
 			}
 			camera.startPreview();
 			Log.d(TAG, "Camera preview started");
-			frameSize[0] = frameWidth;
-			frameSize[1] = frameHeight;
+			frameSize[0] = FrameWidth;
+			frameSize[1] = FrameHeight;
 			return frameSize;
 		} else {
 			Log.e(TAG, "Failed to open camera");
@@ -155,40 +168,49 @@ public class CameraHandler {
 		for (Size s : previewSizes) {
 			if (s.width == presetWidth && Math.abs(s.height-presetHeight) < minDifference) {
 				Log.d(TAG, "preview size w: " + s.width + ", h:" + s.height);
-				frameWidth = s.width;
-				frameHeight = s.height;
+				FrameWidth = s.width;
+				FrameHeight = s.height;
 			}
 		}
 		
-//		List<Size> pictureSizes = parameters.getSupportedPictureSizes();
-//		Log.d(TAG, "Supported picture sizes:");
-//		for (Size s : pictureSizes) {
-//			Log.d(TAG, "picture size w: " + s.width + ", h:" + s.height);
-//		}
-		
-		
 		photoTaker.setPictureSize(camera);
-		parameters.setPreviewSize(frameWidth, frameHeight);
+		parameters.setPreviewSize(FrameWidth, FrameHeight);
 		parameters.setPreviewFormat(ImageFormat.NV21);
 		parameters.setWhiteBalance(Camera.Parameters.WHITE_BALANCE_AUTO);
 
+		String focusMode = chooseFocusMode(parameters);
+		if(focusMode != null) {
+			parameters.setFocusMode(focusMode);
+		}
+		
+		camera.setParameters(parameters);
+		Log.d(TAG, "finished set camera parameters");
+
+		setCallback();
+	}
+	
+	private String chooseFocusMode(Parameters parameters) {
+		
+		String selectedFocusMode = null;
+		
 		List<String> supportedFocusModes = parameters.getSupportedFocusModes();
 		if (supportedFocusModes != null) {
 			
-			if (supportedFocusModes
-					.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
-				parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
-				Log.d(TAG, "Set focus mode CONTINUOUS_PICTURE");
-			} 
-			else if (supportedFocusModes
-					.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO)) {
-				parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
-				Log.d(TAG, "Set focus mode CONTINUOS VIDEO");
+			if(preferredFocusMode != null && 
+					supportedFocusModes.contains(preferredFocusMode)){
+				selectedFocusMode = preferredFocusMode;
 			}
-			else if (supportedFocusModes
-					.contains(Camera.Parameters.FOCUS_MODE_AUTO)) {
-				parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
-				Log.d(TAG, "Set focus mode AUTO");
+			else if (supportedFocusModes.contains(
+						Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
+				selectedFocusMode = Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE;
+			} 
+			else if (supportedFocusModes.contains(
+						Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO)) {
+				selectedFocusMode = Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO;
+			}
+			else if (supportedFocusModes.contains(
+						Camera.Parameters.FOCUS_MODE_AUTO)) {
+				selectedFocusMode = Camera.Parameters.FOCUS_MODE_AUTO;
 			}
 			
 			/*
@@ -204,10 +226,8 @@ public class CameraHandler {
 			*/
 		}
 		
-		camera.setParameters(parameters);
-		Log.d(TAG, "finished set camera parameters");
-
-		setCallback();
+		Log.d(TAG, "Selected focus mode: " + selectedFocusMode);
+		return selectedFocusMode;
 	}
 	
 	
@@ -287,7 +307,7 @@ public class CameraHandler {
 				Log.d(TAG, "w: " + s.width + ", h:" + s.height);
 			}
 
-			parameters.setPreviewSize(frameWidth, frameHeight);
+			parameters.setPreviewSize(FrameWidth, FrameHeight);
 			camera.setParameters(parameters);
 			camera.startPreview();
 			inPreview = true;
@@ -384,7 +404,7 @@ public class CameraHandler {
 				}
 			}
 			
-			dataListener.receiveCameraFrame(data, frameWidth, frameHeight, 
+			dataListener.receiveCameraFrame(data, FrameWidth, FrameHeight, 
 					currentCameraFacing == CameraInfo.CAMERA_FACING_BACK);
 			//Log.d(TAG, "frame received from camera");
 		}
@@ -403,7 +423,7 @@ public class CameraHandler {
 					currentCameraFacing = CameraInfo.CAMERA_FACING_BACK;
 				}
 				
-				resumeCamera(currentCameraFacing/*, frameWidth, frameHeight*/);
+				resumeCamera(currentCameraFacing);
 			}
 		}
 		
