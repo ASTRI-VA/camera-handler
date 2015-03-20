@@ -182,8 +182,10 @@ public class CameraHandler {
 		List<Size> previewSizes = parameters.getSupportedPreviewSizes();
 		Log.d(TAG, "Supported preview sizes:");
 		for (Size s : previewSizes) {
-			if (s.width == presetWidth && Math.abs(s.height-presetHeight) < minDifference) {
+			int heightDifference = Math.abs(s.height-presetHeight);
+			if (s.width == presetWidth && heightDifference < minDifference) {
 				Log.d(TAG, "preview size w: " + s.width + ", h:" + s.height);
+				minDifference = heightDifference;
 				FrameWidth = s.width;
 				FrameHeight = s.height;
 			}
