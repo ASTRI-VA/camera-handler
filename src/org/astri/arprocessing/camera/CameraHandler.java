@@ -191,7 +191,9 @@ public class CameraHandler {
 			}
 		}
 		
-		photoTaker.setPictureSize(camera);
+		if(photoTaker != null) {
+			photoTaker.setPictureSize(camera);
+		}
 		parameters.setPreviewSize(FrameWidth, FrameHeight);
 		parameters.setPreviewFormat(ImageFormat.NV21);
 		parameters.setWhiteBalance(Camera.Parameters.WHITE_BALANCE_AUTO);
