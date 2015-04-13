@@ -82,6 +82,10 @@ public class CameraHandler {
 		
 	}
 
+	public int getCameraNumber() {
+		return Camera.getNumberOfCameras();
+	}
+	
 	public void setPreviewHolder(SurfaceView preview) {
 		previewHolder = preview.getHolder();
 		previewHolder.addCallback(surfaceCallback);
