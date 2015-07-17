@@ -51,7 +51,7 @@ public class PhotoTaker {
 	
 	public boolean takePhoto(Camera camera){
 		
-		if(camera != null){
+		if(camera != null && !takingPhoto){
 			
 			setPictureSize(camera);
 			
@@ -117,7 +117,7 @@ public class PhotoTaker {
 			Log.d(TAG, "camera focused: " + success);
 			if(takingPhoto){
 				camera.takePicture(null, null, jpegCallback);
-				takingPhoto = false;
+				//takingPhoto = false;
 			}
 			else {
 				//camera.cancelAutoFocus();
@@ -152,6 +152,7 @@ public class PhotoTaker {
 			//camera.setPreviewDisplay(previewHolder);
 			
 			photoListener.photoCaptured(buffer.array(), photoWidth, photoHeight, aspectRatio);
+			takingPhoto = false;
 		}
 	};
 	
