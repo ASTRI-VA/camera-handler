@@ -116,7 +116,12 @@ public class PhotoTaker {
 		public void onAutoFocus(boolean success, Camera camera) {
 			Log.d(TAG, "camera focused: " + success);
 			if(takingPhoto){
-				camera.takePicture(null, null, jpegCallback);
+				try {
+					camera.takePicture(null, null, jpegCallback);
+				} catch(Exception e) {
+					Log.e(TAG, "Error taking photo", e);
+					takingPhoto = false;
+				}
 				//takingPhoto = false;
 			}
 			else {
