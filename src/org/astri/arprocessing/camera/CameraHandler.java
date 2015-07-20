@@ -64,7 +64,7 @@ public class CameraHandler {
 	
 	public CameraHandler(int cameraFacing, Context context) {
 		this(DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT,
-				CameraInfo.CAMERA_FACING_BACK, context);
+				cameraFacing, context);
 	}
 	
 	public CameraHandler(int frameWidth, int frameHeight, int cameraFacing, Context context) {
@@ -82,6 +82,10 @@ public class CameraHandler {
 		
 	}
 
+	public int getCameraNumber() {
+		return Camera.getNumberOfCameras();
+	}
+	
 	public void setPreviewHolder(SurfaceView preview) {
 		previewHolder = preview.getHolder();
 		previewHolder.addCallback(surfaceCallback);
@@ -105,8 +109,17 @@ public class CameraHandler {
 		this.preferredFocusMode = focusMode;
 	}
 	
-	public int [] resumeCamera(int cameraFacing) {
-
+	public int[] resumeCameraIndex(int cameraIndex) {
+		
+	    try {
+	        camera = Camera.open(cameraIndex);
+	    } catch (RuntimeException e) {
+	    	Log.e(TAG, "Camera failed to open: " + e.getLocalizedMessage());
+	    }
+		return resumeCamera();
+	}
+	
+	public int[] resumeCamera(int cameraFacing) {
 		currentCameraFacing = cameraFacing;
 		
 		int cameraCount = Camera.getNumberOfCameras();
@@ -122,7 +135,14 @@ public class CameraHandler {
 	        }
 	    }
 	    
-	    // selected camera failed to open, try other cameras
+		return resumeCamera();
+		
+	}
+	
+	public int[] resumeCamera() {
+		
+		// no preferred camera or selected camera failed to open, try other cameras
+		int cameraCount = Camera.getNumberOfCameras();
 		if(camera == null){
 			Log.e(TAG, "Selected Camera open returns null, trying to open other cameras, camera count: " + cameraCount);
 			for(int i = 0; i < cameraCount; i++){
@@ -166,14 +186,18 @@ public class CameraHandler {
 		List<Size> previewSizes = parameters.getSupportedPreviewSizes();
 		Log.d(TAG, "Supported preview sizes:");
 		for (Size s : previewSizes) {
-			if (s.width == presetWidth && Math.abs(s.height-presetHeight) < minDifference) {
+			int heightDifference = Math.abs(s.height-presetHeight);
+			if (s.width == presetWidth && heightDifference < minDifference) {
 				Log.d(TAG, "preview size w: " + s.width + ", h:" + s.height);
+				minDifference = heightDifference;
 				FrameWidth = s.width;
 				FrameHeight = s.height;
 			}
 		}
 		
-		photoTaker.setPictureSize(camera);
+		if(photoTaker != null) {
+			photoTaker.setPictureSize(camera);
+		}
 		parameters.setPreviewSize(FrameWidth, FrameHeight);
 		parameters.setPreviewFormat(ImageFormat.NV21);
 		parameters.setWhiteBalance(Camera.Parameters.WHITE_BALANCE_AUTO);
