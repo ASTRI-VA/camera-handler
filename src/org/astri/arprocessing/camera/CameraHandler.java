@@ -121,6 +121,12 @@ public class CameraHandler {
 	
 	public int[] resumeCamera(int cameraFacing) {
 		currentCameraFacing = cameraFacing;
+		openCameraFacing(cameraFacing);
+		return resumeCamera();
+		
+	}
+	
+	private void openCameraFacing(int cameraFacing) {
 		
 		int cameraCount = Camera.getNumberOfCameras();
 		Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
@@ -134,9 +140,6 @@ public class CameraHandler {
 	            }
 	        }
 	    }
-	    
-		return resumeCamera();
-		
 	}
 	
 	public int[] resumeCamera() {
@@ -254,17 +257,32 @@ public class CameraHandler {
 		return selectedFocusMode;
 	}
 	
+	/**
+	 * Init photo size using back camera
+	 */
+	public void initPhotoSize() {
+		initPhotoSize(CameraInfo.CAMERA_FACING_BACK);
+	}
 	
-	public void initPhotoSize(){
+	/**
+	 * Init photo size for taking photo by either front or back camera
+	 * @param cameraFacing
+	 */
+	public void initPhotoSize(int cameraFacing){
 		
 		if(camera != null){
+			// camera already opened
 			photoTaker.setPictureSize(camera);
 		}
 		else {
-			camera = Camera.open();
-			photoTaker.setPictureSize(camera);
-			camera.release();
-			camera = null;
+			openCameraFacing(cameraFacing);
+			if(camera != null) {
+				photoTaker.setPictureSize(camera);
+				camera.release();
+				camera = null;
+			} else {
+				Log.e(TAG, "Photo size init failed");
+			}
 		}
 		
 	}
