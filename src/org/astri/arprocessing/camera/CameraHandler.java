@@ -218,6 +218,7 @@ public class CameraHandler {
 		String selectedFocusMode = null;
 		
 		List<String> supportedFocusModes = parameters.getSupportedFocusModes();
+
 		if (supportedFocusModes != null) {
 			
 			if(preferredFocusMode != null && 
@@ -225,18 +226,17 @@ public class CameraHandler {
 				selectedFocusMode = preferredFocusMode;
 			}
 			else if (supportedFocusModes.contains(
-						Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
-				selectedFocusMode = Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE;
-			} 
-			else if (supportedFocusModes.contains(
 						Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO)) {
 				selectedFocusMode = Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO;
 			}
 			else if (supportedFocusModes.contains(
+						Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
+				selectedFocusMode = Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE;
+			} 
+			else if (supportedFocusModes.contains(
 						Camera.Parameters.FOCUS_MODE_AUTO)) {
 				selectedFocusMode = Camera.Parameters.FOCUS_MODE_AUTO;
 			}
-			
 			/*
 			if (supportedFocusModes
 					.contains(Camera.Parameters.FOCUS_MODE_INFINITY)) {
