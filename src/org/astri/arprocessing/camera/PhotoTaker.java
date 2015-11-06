@@ -49,21 +49,47 @@ public class PhotoTaker {
 		aspectRatio = newRatio;
 	}
 	
+	/**
+	 * Takes photo directly without trying to focus camera
+	 * @param camera
+	 * @return
+	 */
 	public boolean takePhoto(Camera camera){
 		
 		if(camera != null && !takingPhoto){
 			
 			setPictureSize(camera);
-			
 			takingPhoto = true;
-			camera.autoFocus(focusCallback);
-			Log.d(TAG, "photo taking finished");
+			takeJpegPicture(camera);
+			
+			Log.d(TAG, "photo taking called");
 			return true;
 		} else {
 			Log.e(TAG, "Can not take a photo now!");
 			return false;
 		}
-		
+	}
+	
+	/**
+	 *  First tries to focus camera and then take the
+	 *  photo when camera is focused.
+	 *  NOTE: This doesn't work in all devices!
+	 * @param camera
+	 * @return if photo taking was initiated
+	 */
+	public boolean focusAndTakePhoto(Camera camera) {
+		if(camera != null && !takingPhoto){
+			
+			setPictureSize(camera);
+			takingPhoto = true;
+			camera.autoFocus(focusCallback);
+			
+			Log.d(TAG, "photo taking called, focus in progress");
+			return true;
+		} else {
+			Log.e(TAG, "Can not take a photo now!");
+			return false;
+		}
 	}
 	
 	public void setPictureSize(Camera camera){
@@ -111,22 +137,26 @@ public class PhotoTaker {
 		return photoHeight;
 	}
 	
+	private void takeJpegPicture(Camera camera) {
+		if(takingPhoto){
+			try {
+				camera.takePicture(null, null, jpegCallback);
+			} catch(Exception e) {
+				Log.e(TAG, "Error taking photo", e);
+				takingPhoto = false;
+			}
+			//takingPhoto = false;
+		}
+		else {
+			//camera.cancelAutoFocus();
+		}
+	}
+	
 	private Camera.AutoFocusCallback focusCallback = new Camera.AutoFocusCallback() {
 		@Override
 		public void onAutoFocus(boolean success, Camera camera) {
 			Log.d(TAG, "camera focused: " + success);
-			if(takingPhoto){
-				try {
-					camera.takePicture(null, null, jpegCallback);
-				} catch(Exception e) {
-					Log.e(TAG, "Error taking photo", e);
-					takingPhoto = false;
-				}
-				//takingPhoto = false;
-			}
-			else {
-				//camera.cancelAutoFocus();
-			}
+			takeJpegPicture(camera);
 		}
 	};
 	
