@@ -82,6 +82,14 @@ public class CameraHandler {
 		
 	}
 
+	public Camera getCamera() {
+		return camera;
+	}
+	
+	public Point getFrameSize() {
+		return new Point(FrameWidth, FrameHeight);
+	}
+	
 	public int getCameraNumber() {
 		return Camera.getNumberOfCameras();
 	}
@@ -446,8 +454,10 @@ public class CameraHandler {
 				}
 			}
 			
+			if (dataListener != null) {
 			dataListener.receiveCameraFrame(data, FrameWidth, FrameHeight, 
 					currentCameraFacing == CameraInfo.CAMERA_FACING_BACK);
+			}
 			//Log.d(TAG, "frame received from camera");
 		}
 	};
@@ -548,6 +558,8 @@ public class CameraHandler {
 	private PhotoListener photoListener = new PhotoListener() {
 		@Override
 		public void photoCaptured(byte[] data, int width, int height, float screenAspectRatio) {
+
+			if (dataListener != null)
 			dataListener.receivePhotoFrame(data, width, height);
 		}
 	};
@@ -555,6 +567,8 @@ public class CameraHandler {
 	private PhotoListener markerListener = new PhotoListener() {
 		@Override
 		public void photoCaptured(byte[] data, int width, int height, float screenAspectRatio) {
+
+			if (dataListener != null)
 			dataListener.receiveMarkerFrame(data, width, height, screenAspectRatio);
 		}
 	};
