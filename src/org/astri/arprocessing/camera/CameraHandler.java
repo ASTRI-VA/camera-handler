@@ -193,21 +193,42 @@ public class CameraHandler {
 
 		Camera.Parameters parameters = camera.getParameters();
 		int minDifference = 100000;
-		
+
+		boolean isRotatedNeeded = false;
+		if (presetWidth < presetHeight) {
+			isRotatedNeeded = true;
+			int tmp = presetWidth;
+			presetWidth = presetHeight;
+			presetHeight = tmp;
+		}
 		List<Size> previewSizes = parameters.getSupportedPreviewSizes();
-		Log.d(TAG, "Supported preview sizes:");
+		Log.d(TAG, "Supported preview sizes:" + previewSizes.size());
+		float minRatioDifference = 1000000.0f;
 		for (Size s : previewSizes) {
+			float ratioDifference = Math.abs(s.height * 1.0f / s.width - presetHeight * 1.0f / presetWidth);
 			int heightDifference = Math.abs(s.height-presetHeight);
-			if (s.width == presetWidth && heightDifference < minDifference) {
+			if (ratioDifference < minRatioDifference || (ratioDifference == minRatioDifference && heightDifference < minDifference) ) {
 				Log.d(TAG, "preview size w: " + s.width + ", h:" + s.height);
+				minRatioDifference = ratioDifference;
 				minDifference = heightDifference;
 				FrameWidth = s.width;
 				FrameHeight = s.height;
+				
 			}
+//			int heightDifference = Math.abs(s.height-presetHeight);
+//			if (s.width == presetWidth && heightDifference < minDifference) {
+//				Log.d(TAG, "preview size w: " + s.width + ", h:" + s.height);
+//				minDifference = heightDifference;
+//				FrameWidth = s.width;
+//				FrameHeight = s.height;
+//			}
 		}
 		
 		if(photoTaker != null) {
 			photoTaker.setPictureSize(camera);
+		}
+		if (isRotatedNeeded) {
+			camera.setDisplayOrientation(90);
 		}
 		parameters.setPreviewSize(FrameWidth, FrameHeight);
 		parameters.setPreviewFormat(ImageFormat.NV21);
@@ -217,7 +238,6 @@ public class CameraHandler {
 		if(focusMode != null) {
 			parameters.setFocusMode(focusMode);
 		}
-		
 		camera.setParameters(parameters);
 		Log.d(TAG, "finished set camera parameters");
 
@@ -357,7 +377,12 @@ public class CameraHandler {
 				Log.d(TAG, "w: " + s.width + ", h:" + s.height);
 			}
 
-			parameters.setPreviewSize(FrameWidth, FrameHeight);
+			if (FrameWidth > FrameHeight) {
+				parameters.setPreviewSize(FrameWidth, FrameHeight);
+			} else {
+				parameters.setPreviewSize(FrameHeight, FrameWidth);
+				camera.setDisplayOrientation(90);
+			}
 			camera.setParameters(parameters);
 			camera.startPreview();
 			inPreview = true;
