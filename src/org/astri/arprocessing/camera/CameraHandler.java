@@ -32,6 +32,7 @@ public class CameraHandler {
 	
 	private SurfaceHolder previewHolder = null;
 	private Camera camera;
+	private CameraInfo cameraInfo = new CameraInfo();
 	private boolean inPreview;
 	private int currentCameraFacing = CameraInfo.CAMERA_FACING_BACK;
 
@@ -86,6 +87,10 @@ public class CameraHandler {
 		return camera;
 	}
 	
+	public CameraInfo getCameraInfo() {
+		return cameraInfo;
+	}
+	
 	public Point getFrameSize() {
 		return new Point(FrameWidth, FrameHeight);
 	}
@@ -137,7 +142,7 @@ public class CameraHandler {
 	private void openCameraFacing(int cameraFacing) {
 		
 		int cameraCount = Camera.getNumberOfCameras();
-		Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
+		// Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
 	    for (int camIdx = 0; camIdx < cameraCount; camIdx++) {
 	        Camera.getCameraInfo(camIdx, cameraInfo);
 	        if (cameraInfo.facing == cameraFacing) {
@@ -146,6 +151,7 @@ public class CameraHandler {
 	            } catch (RuntimeException e) {
 	                Log.e(TAG, "Camera failed to open: " + e.getLocalizedMessage());
 	            }
+	            break;
 	        }
 	    }
 	}
