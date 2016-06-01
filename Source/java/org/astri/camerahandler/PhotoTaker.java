@@ -1,4 +1,4 @@
-package org.astri.arprocessing.camera;
+package org.astri.camerahandler;
 
 import java.io.File;
 import java.io.FileNotFoundException;

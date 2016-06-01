@@ -1,4 +1,4 @@
-package org.astri.arprocessing.camera;
+package org.astri.camerahandler;
 
 import java.util.Comparator;
 

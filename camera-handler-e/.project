@@ -30,4 +30,11 @@
 		<nature>com.android.ide.eclipse.adt.AndroidNature</nature>
 		<nature>org.eclipse.jdt.core.javanature</nature>
 	</natures>
+	<linkedResources>
+		<link>
+			<name>java</name>
+			<type>2</type>
+			<locationURI>PARENT-1-PROJECT_LOC/Source/java</locationURI>
+		</link>
+	</linkedResources>
 </projectDescription>
