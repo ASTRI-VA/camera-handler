@@ -486,8 +486,11 @@ public class CameraHandler {
 			}
 			
 			if (dataListener != null) {
-			dataListener.receiveCameraFrame(data, FrameWidth, FrameHeight, 
-					currentCameraFacing == CameraInfo.CAMERA_FACING_BACK);
+				Camera.Parameters params = c.getParameters();
+				int format = params.getPreviewFormat();
+				dataListener.receiveCameraFrame(data, FrameWidth, FrameHeight,
+					currentCameraFacing == CameraInfo.CAMERA_FACING_BACK,
+						format);
 			}
 			//Log.d(TAG, "frame received from camera");
 		}
