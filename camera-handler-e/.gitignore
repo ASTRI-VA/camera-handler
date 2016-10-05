@@ -16,6 +16,9 @@ bin/
 gen/
 obj/
 
+.project
+.classpath
+
 # Local configuration file (sdk path, etc)
 local.properties
 
