@@ -486,11 +486,15 @@ public class CameraHandler {
 			}
 			
 			if (dataListener != null) {
-				Camera.Parameters params = c.getParameters();
-				int format = params.getPreviewFormat();
-				dataListener.receiveCameraFrame(data, FrameWidth, FrameHeight,
-					currentCameraFacing == CameraInfo.CAMERA_FACING_BACK,
-						format);
+				try {
+					Camera.Parameters params = c.getParameters();
+					int format = params.getPreviewFormat();
+					dataListener.receiveCameraFrame(data, FrameWidth, FrameHeight,
+							currentCameraFacing == CameraInfo.CAMERA_FACING_BACK,
+							format);
+				} catch(Exception e) {
+					Log.e(TAG, "Error getting camera parameters!", e);
+				}
 			}
 			//Log.d(TAG, "frame received from camera");
 		}
