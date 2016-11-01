@@ -35,6 +35,7 @@ public class CameraHandler {
 	private CameraInfo cameraInfo = new CameraInfo();
 	private boolean inPreview;
 	private int currentCameraFacing = CameraInfo.CAMERA_FACING_BACK;
+    private int imageOrientation = 0;
 
 	/**
 	 * Buffer for camera driver to store preview data, created statically so
@@ -126,6 +127,7 @@ public class CameraHandler {
 		
 	    try {
 	        camera = Camera.open(cameraIndex);
+            imageOrientation = getImageOrientation(cameraIndex);
 	    } catch (RuntimeException e) {
 	    	Log.e(TAG, "Camera failed to open: " + e.getLocalizedMessage());
 	    }
@@ -148,6 +150,7 @@ public class CameraHandler {
 	        if (cameraInfo.facing == cameraFacing) {
 	            try {
 	                camera = Camera.open(camIdx);
+                    imageOrientation = getImageOrientation(camIdx);
 	            } catch (RuntimeException e) {
 	                Log.e(TAG, "Camera failed to open: " + e.getLocalizedMessage());
 	            }
@@ -166,6 +169,7 @@ public class CameraHandler {
 				camera = Camera.open(i);
 				if(camera != null){
 					Log.d(TAG, "Camera opened at id: " + i);
+                    imageOrientation = getImageOrientation(i);
 					break;
 				}
 			}
@@ -194,6 +198,14 @@ public class CameraHandler {
 		
 		return frameSize;
 	}
+
+    private int getImageOrientation(int cameraIndex) {
+        CameraInfo cameraInfo = new CameraInfo();
+        Camera.getCameraInfo(cameraIndex, cameraInfo);
+        int imageOrientation = cameraInfo.orientation;
+        Log.d(TAG, "camerainfo orientation: " + imageOrientation);
+        return imageOrientation;
+    }
 
 	private void initCamera(int presetWidth, int presetHeight) {
 
@@ -364,8 +376,7 @@ public class CameraHandler {
 					camera.setPreviewDisplay(previewHolder);
 				}
 			} catch (Throwable t) {
-				Log.e("PreviewDemo-surfaceCallback",
-						"Exception in setPreviewDisplay()", t);
+				Log.e(TAG, "Exception in setPreviewDisplay()", t);
 			}
 		}
 
@@ -407,23 +418,20 @@ public class CameraHandler {
 	 * 
 	 */
 	public void setCallback() {
-		int bufferSize = 0;
-		int pformat;
-		int bitsPerPixel;
 
-		pformat = camera.getParameters().getPreviewFormat();
+		int pformat = camera.getParameters().getPreviewFormat();
 
 		// Get pixel format information to compute buffer size.
 		PixelFormat info = new PixelFormat();
 		PixelFormat.getPixelFormatInfo(pformat, info);
-		bitsPerPixel = info.bitsPerPixel;
+		int bitsPerPixel = info.bitsPerPixel;
 
 		mPreviewWidth = camera.getParameters().getPreviewSize().width;
 		mPreviewHeight = camera.getParameters().getPreviewSize().height;
 
 		Log.d(TAG, "preview w: " + mPreviewWidth + ", h: " + mPreviewHeight);
 
-		bufferSize = mPreviewWidth * mPreviewHeight * bitsPerPixel / 8;
+		int bufferSize = mPreviewWidth * mPreviewHeight * bitsPerPixel / 8;
 
 		// Make sure buffer is deleted before creating a new one.
 		mPreviewBuffer = null;
@@ -491,7 +499,7 @@ public class CameraHandler {
 					int format = params.getPreviewFormat();
 					dataListener.receiveCameraFrame(data, FrameWidth, FrameHeight,
 							currentCameraFacing == CameraInfo.CAMERA_FACING_BACK,
-							format);
+							format, imageOrientation);
 				} catch(Exception e) {
 					Log.e(TAG, "Error getting camera parameters!", e);
 				}
